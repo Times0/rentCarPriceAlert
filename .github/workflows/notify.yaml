@@ -1,0 +1,27 @@
+name: Run main.py
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Every hour
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run main.py
+        run: python main.py
