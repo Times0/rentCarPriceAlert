@@ -10,7 +10,7 @@ TRIGGER_PRICE = 700
 
 def main():
     # initialize an instance of the chrome driver (browser)
-    driver = uc.Chrome()
+    driver = uc.Chrome(browser_executable_path="./chromedriver/chromedriver_linux")
 
     # visit your target site
     link = "https://www.rentalcars.com/search-results?coordinates=44.825893%2C-0.556612&doDay=5&doHour=16&doMinute=0&doMonth=7&doYear=2024&driversAge=30&dropCoordinates=44.825893%2C-0.556612&dropFtsType=&dropLocation=-1&dropLocationIata=&dropLocationName=Gare%20de%20Bordeaux-Saint-Jean&ftsType=A&location=-1&locationIata=&locationName=Gare%20de%20Bordeaux-Saint-Jean&puDay=22&puHour=16&puMinute=0&puMonth=6&puYear=2024&filterCriteria_transmission=MANUAL&filterCriteria_depotLocationType=TRAINSTATION&filterCriteria_minimumFourDoors=true&filterCriteria_sortBy=PRICE&filterCriteria_sortAscending=true"
