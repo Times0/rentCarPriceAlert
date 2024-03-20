@@ -1,10 +1,12 @@
 import pyshorteners
+import selenium
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-from telegram_notifier import send_message
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+from telegram_notifier import send_message
 
 TRIGGER_PRICE = 520
 
@@ -18,9 +20,15 @@ def main():
     with uc.Chrome() as driver:
         driver.get(link)
         print("Waiting for page to load")
-        WebDriverWait(driver, 20).until(
-            EC.text_to_be_present_in_element((By.CLASS_NAME, 'SM_3e7a1efe'), 'voitures disponibles'))
-        print("Page loaded or to")
+        try:
+            WebDriverWait(driver, 20).until(
+                EC.text_to_be_present_in_element((By.CLASS_NAME, 'SM_3e7a1efe'), 'voitures disponibles'))
+        except selenium.common.exceptions.TimeoutException:
+            # look if there is the word captcha in the page
+            if "captcha" in driver.page_source:
+                send_message("Captcha detected, please solve it manually.")
+                return
+
         page_source = driver.page_source
 
     soup = BeautifulSoup(page_source, "html.parser")
@@ -33,20 +41,21 @@ def main():
         send_message("Probable bug in the program, found no cars. Check the website.")
         return
 
-    cheap_cars: list = []
+    prices: list = []
     # find price in each div
     for div in alll:
         string_amount = div.find("div", class_=price_div).text
         string_amount = string_amount.replace(",", ".").replace("\u202f", "")
         float_amount = float(string_amount[:-2])
         if float_amount < TRIGGER_PRICE:
-            cheap_cars.append(div)
+            prices.append(div)
 
-    n_cars = len(cheap_cars)
+    n_cars = len(prices)
 
     shortlink = pyshorteners.Shortener().tinyurl.short(link)
     if n_cars > 0:
         send_message(f"Found {n_cars} cars under {TRIGGER_PRICE}€ @times42"
+                     f"The cheapest one costs "
                      f"\n{shortlink}")
     else:
         send_message(f"No cars found under {TRIGGER_PRICE}€")
