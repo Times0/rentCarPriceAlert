@@ -1,5 +1,7 @@
+import os
+import time
+
 import pyshorteners
-import selenium
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -11,25 +13,44 @@ from telegram_notifier import send_message
 TRIGGER_PRICE = 520
 
 
-def main():
-    # initialize an instance of the chrome driver (browser)
+def solve_captcha(driver):
+    # solve captcha using buster
+    # driver.get("https://www.google.com/recaptcha/api2/demo")
+    # time.sleep(3)
 
-    # visit your target site
-    link = "https://www.rentalcars.com/search-results?coordinates=44.825893%2C-0.556612&doDay=5&doHour=16&doMinute=0&doMonth=7&doYear=2024&driversAge=30&dropCoordinates=44.825893%2C-0.556612&dropFtsType=&dropLocation=-1&dropLocationIata=&dropLocationName=Gare%20de%20Bordeaux-Saint-Jean&ftsType=A&location=-1&locationIata=&locationName=Gare%20de%20Bordeaux-Saint-Jean&puDay=22&puHour=16&puMinute=0&puMonth=6&puYear=2024&filterCriteria_transmission=MANUAL&filterCriteria_depotLocationType=TRAINSTATION&filterCriteria_minimumFourDoors=true&filterCriteria_sortBy=PRICE&filterCriteria_sortAscending=true"
+    WebDriverWait(driver, 20).until(EC.frame_to_be_available_and_switch_to_it(
+        (By.XPATH, "//iframe[starts-with(@src, 'https://www.google.com/recaptcha/api2/anchor')]")))
+    WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.XPATH, "//div[@class='recaptcha-checkbox-border']"))).click()
 
-    with uc.Chrome() as driver:
-        driver.get(link)
-        print("Waiting for page to load")
-        try:
-            WebDriverWait(driver, 20).until(
-                EC.text_to_be_present_in_element((By.CLASS_NAME, 'SM_3e7a1efe'), 'voitures disponibles'))
-        except selenium.common.exceptions.TimeoutException:
-            # look if there is the word captcha in the page
-            if "captcha" in driver.page_source:
-                send_message("Captcha detected, please solve it manually.")
-                return
+    driver.switch_to.default_content()
+    WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(
+        (By.XPATH, "//iframe[starts-with(@src, 'https://www.google.com/recaptcha/api2/bframe')]")))
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".help-button-holder"))).click()
+    time.sleep(50)  # Wait for buster to solve captcha
 
-        page_source = driver.page_source
+
+def main(driver):
+    link = ("https://www.rentalcars.com/search-results?coordinates=44.825893%2C-0.556612&doDay=5&doHour=16&doMinute=0"
+            "&doMonth=7&doYear=2024&driversAge=30&dropCoordinates=44.825893%2C-0.556612&dropFtsType=&dropLocation=-1"
+            "&dropLocationIata=&dropLocationName=Gare%20de%20Bordeaux-Saint-Jean&ftsType=A&location=-1&locationIata"
+            "=&locationName=Gare%20de%20Bordeaux-Saint-Jean&puDay=22&puHour=16&puMinute=0&puMonth=6&puYear=2024"
+            "&filterCriteria_transmission=MANUAL&filterCriteria_depotLocationType=TRAINSTATION"
+            "&filterCriteria_minimumFourDoors=true&filterCriteria_sortBy=PRICE&filterCriteria_sortAscending=true")
+
+    print("Loading page...")
+    driver.get(link)
+    print("Page loaded")
+    time.sleep(5)
+    if "captcha" in driver.page_source:
+        print("Captcha detected, solving it...")
+        solve_captcha(driver)
+    elif "voitures disponibles" not in driver.page_source:
+        print("No captcha but page not loaded idk what to do bro")
+        return
+    else:
+        print("Page loaded successfully (no captcha)")
+    page_source = driver.page_source
 
     soup = BeautifulSoup(page_source, "html.parser")
 
@@ -62,4 +83,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    options = uc.ChromeOptions()
+    options.add_argument(f"--load-extension={os.path.abspath('buster')}")
+
+    with uc.Chrome(options=options) as driver:
+        # solve_captcha(driver)
+        main(driver)
