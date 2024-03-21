@@ -28,11 +28,15 @@ def solve_captcha(driver):
         (By.XPATH, "//iframe[starts-with(@src, 'https://www.google.com/recaptcha/api2/bframe')]")))
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".help-button-holder"))).click()
 
+    time.sleep(2)
+    if "Your computer or network may be sending automated queries" in driver.page_source:
+        print("Captcha not solved :(. Automated queries detected")
+        return
     driver.switch_to.default_content()
-    time.sleep(5)
+    time.sleep(2)
 
     if "captcha" in driver.page_source:
-        print("Captcha not solved :(")
+        print("Captcha not solved :(, captcha still there")
 
 
 def main(driver):
